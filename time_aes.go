@@ -51,7 +51,7 @@ func main() {
 		if err != nil {
 			panic("文件读取失败!")
 		}
-		ecfi, err := os.Create("ec_result")
+		ecfi, err := os.Create("ec_" + ts)
 		if err != nil {
 			panic("文件创建失败!")
 		}
