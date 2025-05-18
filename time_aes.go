@@ -8,17 +8,17 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/rand"
 	"os"
 	"strconv"
-	"time"
 
 	"github.com/beevik/ntp"
 )
 
-var CURRENT_TIME time.Time
-var TS int
 // key不能泄露
-var PwdKey = []byte("dsa41q2s58x4a5d41sf5z4")
+var randomSeed string
+
+var PwdKey = []byte(generateRandomString(randomSeed, 22))
 
 func main() {
 	if len(os.Args) < 4 {
@@ -39,62 +39,56 @@ func main() {
 	ts := os.Args[3]
 	TS, err := strconv.Atoi(ts)
 	if err != nil {
-		fmt.Println(err, "时间戳格式错误!")
-		return
+		panic("时间戳格式错误!")
 	}
-	PwdKey=[]byte(string(PwdKey)+ts)
+	PwdKey = []byte(string(PwdKey) + ts)
 	if crypt == "ec" {
 		fi, err := os.Open(filePath)
 		if err != nil {
-			fmt.Println(err, "文件路径错误!")
-			return
+			panic("文件路径错误!")
 		}
 		fileBytes, err := io.ReadAll(fi)
 		if err != nil {
-			return
+			panic("文件读取失败!")
 		}
-		ecfi, err := os.Create("ec_" + fi.Name())
+		ecfi, err := os.Create("ec_result")
 		if err != nil {
-			return
+			panic("文件创建失败!")
 		}
 		fi.Close()
-		ecbyte ,err:= EncryptByAes(fileBytes)
+		ecbyte, err := EncryptByAes(fileBytes)
 		if err != nil {
-			return
+			panic("文件加密失败!")
 		}
 		ecfi.Write(ecbyte)
 		ecfi.Close()
 
 	} else {
 		if int(CURRENT_TIME.Unix()) < TS {
-			fmt.Println("解密时间未到!")
-			return
+			panic("解密时间未到!")
 		}
 		fi, err := os.Open(filePath)
 		if err != nil {
-			fmt.Println(err, "文件路径错误!")
-			return
+			panic("文件路径错误!")
 		}
 		fileBytes, err := io.ReadAll(fi)
 		if err != nil {
-			return
+			panic("读取文件失败!")
 		}
-		ecfi, err := os.Create("dc_" + fi.Name())
+		ecfi, err := os.Create("dc_result")
 		if err != nil {
-			return
+			panic("文件创建失败")
 		}
 		fi.Close()
-		ecbyte,err := DecryptByAes(fileBytes)
+		ecbyte, err := DecryptByAes(fileBytes)
 		if err != nil {
-			return
+			panic("解密失败")
 		}
 		ecfi.Write(ecbyte)
 		ecfi.Close()
 	}
 
 }
-
-
 
 // pkcs7Padding 填充
 func pkcs7Padding(data []byte, blockSize int) []byte {
@@ -176,4 +170,17 @@ func DecryptByAes(data []byte) ([]byte, error) {
 		return nil, err
 	}
 	return AesDecrypt(dataByte, PwdKey)
+}
+
+const RANDOM_DICT = `qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890!@#$%^&*()`
+
+func generateRandomString(seedStr string, length int) string {
+	seed, _ := strconv.ParseInt(seedStr, 10, 10)
+	rs := rand.NewSource(seed) // 设置随机种子
+	result := make([]byte, length)
+	for i := 0; i < length; i++ {
+		// 从字典中随机选择一个字符
+		result[i] = RANDOM_DICT[rand.New(rs).Intn(len(RANDOM_DICT))]
+	}
+	return string(result)
 }

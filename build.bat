@@ -1,0 +1,1 @@
+ go build -ldflags="-s -w" -ldflags="-X 'main.randomSeed=$([DateTimeOffset]::Now.ToUnixTimeMilliseconds() * 1000 + [DateTimeOffset]::Now.Microsecond)'" -o TimeAes.exe
